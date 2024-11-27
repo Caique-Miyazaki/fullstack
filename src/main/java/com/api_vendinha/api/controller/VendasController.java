@@ -7,6 +7,7 @@ import com.api_vendinha.api.domain.entities.Vendas;
 import com.api_vendinha.api.domain.service.VendasServiceImpl;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 
@@ -30,12 +31,14 @@ public class VendasController {
     }
 
     @PostMapping()
-        public VendasResponseDto realizarVenda(@RequestBody VendasRequestDto vendaRequestDto) {
-            return vendasService.realizarVenda(vendaRequestDto);
-        }
-    @GetMapping
-    public List<VendasResponseDto> listarVendas() {
-        return vendasService.listarVendas();
+    public VendasResponseDto realizarVenda(@RequestBody VendasRequestDto vendaRequestDto) {
+        return vendasService.realizarVenda(vendaRequestDto);
+    }
+
+    @GetMapping("/listar")
+    public ResponseEntity<List<VendasResponseDto>> listarVendas() {
+        List<VendasResponseDto> vendasAtivas = vendasService.listarVendas();
+        return ResponseEntity.ok(vendasAtivas);
     }
 
     // Rota para buscar uma venda específica
@@ -43,7 +46,15 @@ public class VendasController {
     public VendasResponseDto buscarVenda(@PathVariable Long id) {
         return vendasService.buscarVenda(id);
     }
+
+    @PostMapping("/inativar/{id}")
+    public ResponseEntity<String> inativarVenda(@PathVariable Long id) {
+        int quantidadeSubtraida = vendasService.inativarVenda(id);
+        return ResponseEntity.ok("Venda inativada. Quantidade subtraída: " + quantidadeSubtraida);
     }
+}
+
+
 
 
 
