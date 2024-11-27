@@ -6,7 +6,6 @@ import com.api_vendinha.api.Infrastructure.repository.VendasRepository;
 import com.api_vendinha.api.domain.dtos.request.VendasRequestDto;
 import com.api_vendinha.api.domain.dtos.response.VendasResponseDto;
 import com.api_vendinha.api.domain.entities.Produto;
-import com.api_vendinha.api.domain.entities.User;
 import com.api_vendinha.api.domain.entities.Vendas;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,29 +28,25 @@ public class VendasServiceImpl implements VendasServiceInterface {
 
     @Override
     public VendasResponseDto realizarVenda(VendasRequestDto vendaRequestDto) {
-        // Verificar se o produto existe
         Produto produto = produtoRepository.findById(vendaRequestDto.getProductId())
                 .orElseThrow(() -> new RuntimeException("Produto não encontrado"));
 
-        // Verificar se há quantidade suficiente no estoque
         if (produto.getQuantity() < vendaRequestDto.getQuantity()) {
             throw new RuntimeException("Quantidade em estoque insuficiente para a venda");
         }
 
-        // Atualizar o estoque do produto
         produto.setQuantity(produto.getQuantity() - vendaRequestDto.getQuantity());
         produtoRepository.save(produto);
 
-        // Criar e salvar a venda
         Vendas novaVenda = new Vendas();
         novaVenda.setUserId(vendaRequestDto.getUserId());
         novaVenda.setProductId(produto.getId());
         novaVenda.setQuantity(vendaRequestDto.getQuantity());
         novaVenda.setPrice(vendaRequestDto.getPrice());
+        novaVenda.setActive(true); // Venda começa como ativa por padrão
 
         Vendas vendaSalva = vendasRepository.save(novaVenda);
 
-        // Retornar o DTO de resposta
         return new VendasResponseDto(
                 vendaSalva.getId(),
                 vendaSalva.getUserId(),
@@ -63,7 +58,7 @@ public class VendasServiceImpl implements VendasServiceInterface {
 
     @Override
     public List<VendasResponseDto> listarVendas() {
-        List<Vendas> vendasList = vendasRepository.findAll();
+        List<Vendas> vendasList = vendasRepository.findByActiveTrue(); // Apenas vendas ativas
         return vendasList.stream()
                 .map(vendaItem -> new VendasResponseDto(
                         vendaItem.getId(),
@@ -87,5 +82,21 @@ public class VendasServiceImpl implements VendasServiceInterface {
                 vendaEncontrada.getQuantity(),
                 vendaEncontrada.getPrice()
         );
+    }
+
+    @Override
+    public int inativarVenda(Long id) {
+        Vendas venda = vendasRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venda não encontrada"));
+
+        if (!venda.isActive()) {
+            throw new RuntimeException("Venda já está inativa");
+        }
+
+        venda.setActive(false);
+        vendasRepository.save(venda);
+
+        // Retorna a quantidade de produto subtraída
+        return venda.getQuantity();
     }
 }
